@@ -1,0 +1,33 @@
+name: daily_report
+on: [push]
+jobs:
+  notify_line:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v36
+
+    - name: List all modified files
+      run: |
+        for file in ${{ steps.changed-files.outputs.modified_files }}; do
+          echo $file
+        done
+
+    - name: send LINE Notify
+      if: endsWith(steps.changed-files.outputs.modified_files, 'md')
+      run: |
+        for file in ${{ steps.changed-files.outputs.modified_files }}; do
+          if [ $file != README.md ]; then
+            sed -i 's/[\#\>]//g' ./${{ steps.changed-files.outputs.modified_files }}
+            val=$(cat ./${{ steps.changed-files.outputs.modified_files }})
+            curl -X POST -H 'Authorization: Bearer ${{ secrets.LINE_TOKEN }}' -F "message=$val" \
+            ${{ secrets.LINE_URL }}
+          fi
+        done
